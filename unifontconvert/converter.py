@@ -31,10 +31,8 @@ class UnicodeBlock:
             flags |= 1 << 1
         elif self.block_width_mode == 2:
             flags |= 1 << 2
-        if self.has_direction_changes:
-            flags |= 1 << 3
         if self.has_mirroring:
-            flags |= 1 << 4
+            flags |= 1 << 3
         if self.include_in_progmem:
             flags |= 1 << 7
         return flags
@@ -45,11 +43,7 @@ class UnicodeBlock:
 
 short_blocks = ["00", "01", "02", "1E", "1F", "28"]
 
-blocks = dict()
 bidi_info = dict()
-current_block = None
-has_single_width_glyphs = False
-has_double_width_glyphs = False
 
 for line in open('UnicodeData.txt', 'r'):
     line = line.strip().split(";")
@@ -65,6 +59,12 @@ for line in open('UnicodeData.txt', 'r'):
     info.isRTL = bidi_class in ["R", "AL", "RLE", "RLO", "RLI"]
     info.isMirrored = bidi_mirrored == "Y"
     bidi_info[codepoint] = info
+
+blocks = dict()
+current_block = None
+has_single_width_glyphs = False
+has_double_width_glyphs = False
+force_ltr = False
 
 for line in open('unifont.hex', 'r'):
     line = line.strip().split(":")
@@ -107,23 +107,34 @@ for line in open('unifont.hex', 'r'):
     else:
         current_block.glyphs.append(bytes.fromhex(data))
 
-    if len(data) > 32:
+    if len(data) > 32 and not current_block.is_short_block:
         has_double_width_glyphs = True
         current_block.widths[char_num // 8] |= 1 << (7 - char_num % 8)
     else:
         has_single_width_glyphs = True
 
+    # this check looks a little backwards because the bit is set to 0 for non spacing marks and 1 for spacing marks.
     if codepoint in bidi_info and bidi_info[codepoint].isNSM:
         current_block.has_nonspacing_marks = True
     else:
         current_block.spacings[char_num // 8] |= 1 << (7 - char_num % 8)
 
+    # UnicodeData.txt has some ranges (3400-4DB5, 4E00-9FEF, AC00-D7A3) where they don't
+    # provide lines for each because the same properties apply to all. We only care that
+    # they're all LTR. This will apply until the last glyph in the range is encountered.
+    if codepoint in ["3400", "4E00", "AC00"]:
+        force_ltr = True
+
     if codepoint in bidi_info and bidi_info[codepoint].isRTL:
         current_block.has_direction_changes = True
         current_block.rtl[char_num // 8] |= 1 << (7 - char_num % 8)
-    if codepoint in bidi_info and bidi_info[codepoint].isLTR:
+    if force_ltr or codepoint in bidi_info and bidi_info[codepoint].isLTR:
         current_block.has_direction_changes = True
         current_block.ltr[char_num // 8] |= 1 << (7 - char_num % 8)
+
+    # End of LTR override.
+    if codepoint in ["4DB5", "9FEF", "D7A3"]:
+        force_ltr = False
 
     if codepoint in bidi_info and bidi_info[codepoint].isMirrored:
         current_block.has_mirroring = True
@@ -205,7 +216,7 @@ def generate_unifont_c():
                 # handle it as a special case in the library.
                 print("\n    // LTR bitmasks, starting at U+0040. Block 0 is a special case; since it does not have any double-wide glyphs,", end='', file=outfile)
                 print("\n    // nonspacing marks or RTL characters, we omit those here and treat it differently in code.", end='', file=outfile)
-                print("\n    // Note that in unifont.bin, all bitmasks still appear, and this one begins at character 00 like all the others.", file=outfile)
+                print("\n    // Note that in unifont.bin, all bitmasks still appear, and this one begins at character 00 like all the others.\n    ", end='', file=outfile)
                 for byte in block.ltr[8:]:
                     print("0x{:02X}".format(byte), end=", ", file=outfile)
             elif block.has_nonspacing_marks or block.block_width_mode == 0 or block.has_direction_changes or block.has_mirroring:

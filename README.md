@@ -49,7 +49,7 @@ Note that if you are not using the unifont.bin file, AND you are on one of the E
 There are some edge cases that I hope to address eventually. These are the edge cases, and the current workarounds (which I fully intend to break once I fix the underlying behavior).
 
 * ~~Accents and diacritics in canonically ordered strings will appear off by one~~ **FIXED!** The printUTF8 method now draws combining marks first, and then the character they modify on top. Note that these marks won't be visible if you set a background color, since writing the character background overwrites anything that was there before.
-* You currently need to reverse the order of right-to-left scripts like Arabic and Hebrew to get them to display correctly. **In the future I hope to add an RTL mode to the display library.**
+* ~~You currently need to reverse the order of right-to-left scripts like Arabic and Hebrew to get them to display correctly~~ **FIXED!** For the moment you can call `display.setRTL(true)` before displaying the string. I have [a branch](https://github.com/joeycastillo/Adafruit-GFX-Library/tree/rtl) where I'm testing out Unicode right-to-left support that will set this mode automatically when encountering RTL characters.
 * Arabic appears as isolated letterforms instead of connected script, unless you use [a tool like this](https://github.com/artem-azarov/Arabic-Converter-From-and-To-Arabic-Presentation-Forms-B) to convert it to Arabic Presentation Forms. It might make sense to implement this in the display library.
 
 # Original README: Adafruit GFX Library # [![Build Status](https://travis-ci.com/adafruit/Adafruit-GFX-Library.svg?branch=master)](https://travis-ci.org/adafruit/Adafruit-GFX-Library)
