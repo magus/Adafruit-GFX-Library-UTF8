@@ -1271,7 +1271,7 @@ int Adafruit_GFX::drawCodepoint(int16_t x, int16_t y, uint16_t c, uint16_t color
     }
 
     bool mirrored = false;
-    if (direction == -1)
+    if (direction == -1 && (unifont[block].flags & UNIFONT_BLOCK_HAS_MIRRORED_GLYPHS))
     {
         if (block == 0)
         {
