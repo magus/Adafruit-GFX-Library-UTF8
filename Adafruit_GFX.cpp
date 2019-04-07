@@ -1205,21 +1205,18 @@ int Adafruit_GFX::drawCodepoint(int16_t x, int16_t y, uint16_t c, uint16_t color
         characterWidth = 0; // we'll need to figure this out in a minute.
     }
 
-    startWrite();
-
-    // first, figure out characterWidth if needed
-    uint32_t widthOffset = 16 * tableWidth * 256;
+    const uint8_t *masks;
     uint8_t mask;
     if (characterWidth == 0)
     {
         if (useProgmem)
         {
-            const uint8_t *widths = (const uint8_t *)unifont[block].glyphs.location + 4096 * tableWidth + 32;
-            mask = pgm_read_byte(widths + charindex / 8);
+            const uint8_t *masks = (const uint8_t *)unifont[block].glyphs.location + 16 * tableWidth * 256 + UNIFONT_WIDTH_BITMASK_LOCATION;
+            mask = pgm_read_byte(masks + charindex / 8);
         } else
         {
             #ifdef UNIFONT_USE_FLASH
-            unifile.seek((uint32_t)unifont[block].glyphs.offset + widthOffset + UNIFONT_BITMASK_LENGTH + charindex / 8);
+            unifile.seek((uint32_t)unifont[block].glyphs.offset + 16 * tableWidth * 256 + UNIFONT_WIDTH_BITMASK_LOCATION + charindex / 8);
             mask = unifile.read();
             #endif // UNIFONT_USE_FLASH
         }
@@ -1236,12 +1233,12 @@ int Adafruit_GFX::drawCodepoint(int16_t x, int16_t y, uint16_t c, uint16_t color
     {
         if (useProgmem)
         {
-            const uint8_t *spacings = (const uint8_t *)unifont[block].glyphs.location + 8192;
-            mask = pgm_read_byte(spacings + charindex / 8);
+            masks = (const uint8_t *)unifont[block].glyphs.location + 16 * tableWidth * 256 + UNIFONT_SPACING_BITMASK_LOCATION;
+            mask = pgm_read_byte(masks + charindex / 8);
         } else
         {
             #ifdef UNIFONT_USE_FLASH
-            unifile.seek((uint32_t)unifont[block].glyphs.offset + widthOffset + charindex / 8);
+            unifile.seek((uint32_t)unifont[block].glyphs.offset + 16 * tableWidth * 256 + charindex / 8) + UNIFONT_SPACING_BITMASK_LOCATION;
             mask = unifile.read();
             #endif // UNIFONT_USE_FLASH
         }
@@ -1273,56 +1270,133 @@ int Adafruit_GFX::drawCodepoint(int16_t x, int16_t y, uint16_t c, uint16_t color
         #endif // UNIFONT_USE_FLASH
     }
 
-    switch (characterWidth)
+    bool mirrored = false;
+    if (direction == -1)
     {
-        case 1:
-            for(int8_t i=0; i<characterWidth*16; i++ )
-            {
-                uint8_t line = glyph[i];
-                for(int8_t j=7; j>= 0; j--, line >>= 1)
-                {
-                    if(line & 1)
-                    {
-                        if(size == 1)
-                            writePixel(x+j, y+i, color);
-                        else
-                            writeFillRect(x+j*size, y+i*size, size, size, color);
-                    }
-                    else if(bg != color)
-                    {
-                        if(size == 1)
-                            writePixel(x+j, y+i, bg);
-                        else
-                            writeFillRect(x+j*size, y+i*size, size, size, bg);
-                    }
-                }
-            }
-            break;
-        case 2:
-            for(int8_t i=0; i<characterWidth*16; i++ )
-            {
-                uint8_t line = glyph[i];
-                for(int8_t j=7; j>= 0; j--, line >>= 1)
-                {
-                    if(line & 1)
-                    {
-                        if(size == 1)
-                            writePixel(x+j+(i%2?8:0), y+i/2, color);
-                        else
-                            writeFillRect(x+(j+(i%2?8:0))*size, y+(i/2)*size, size, size, color);
-                    }
-                    else if(bg != color)
-                    {
-                        if(size == 1)
-                            writePixel(x+j+(i%2?8:0), y+i/2, bg);
-                        else
-                            writeFillRect(x+(j+(i%2?8:0))*size, y+(i/2)*size, size, size, bg);
-                    }
-                }
-            }
-            break;
+        if (block == 0)
+        {
+            // special case: only a handful of characters are mirrored in block 0. Keep it simple, no need for a huge bitmask.
+            mirrored = charindex == 0x28 || charindex == 0x29 || charindex == 0x3C || charindex == 0x3E || charindex == 0x5B || charindex == 0x5D || charindex == 0x7B || charindex == 0x7D || charindex == 0xAB || charindex == 0xBB;
+        } else if (useProgmem)
+        {
+            masks = (const uint8_t *)unifont[block].glyphs.location + 16 * tableWidth * 256 + UNIFONT_MIRRORING_BITMASK_LOCATION;
+            mask = pgm_read_byte(masks + charindex / 8);
+        } else
+        {
+            #ifdef UNIFONT_USE_FLASH
+            unifile.seek((uint32_t)unifont[block].glyphs.offset + 16 * tableWidth * 256 + UNIFONT_MIRRORING_BITMASK_LOCATION + charindex / 8);
+            mask = unifile.read();
+            #endif // UNIFONT_USE_FLASH
+        }
+
+        mirrored = mask & (1 << (7 - charindex % 8));
     }
 
+    startWrite();
+
+    if (mirrored)
+    {
+        switch (characterWidth)
+        {
+            case 1:
+                for(int8_t i=0; i<characterWidth*16; i++ )
+                {
+                    uint8_t line = glyph[i];
+                    for(int8_t j=7; j>= 0; j--, line >>= 1)
+                    {
+                        if(line & 1)
+                        {
+                            if(size == 1)
+                                writePixel(x+8-j, y+i, color);
+                            else
+                                writeFillRect(x+8*size-j*size, y+i*size, size, size, color);
+                        }
+                        else if(bg != color)
+                        {
+                            if(size == 1)
+                                writePixel(x+8-j, y+i, bg);
+                            else
+                                writeFillRect(x+8*size-j*size, y+i*size, size, size, bg);
+                        }
+                    }
+                }
+                break;
+            case 2:
+                for(int8_t i=0; i<characterWidth*16; i++ )
+                {
+                    uint8_t line = glyph[i];
+                    for(int8_t j=7; j>= 0; j--, line >>= 1)
+                    {
+                        if(line & 1)
+                        {
+                            if(size == 1)
+                                writePixel(x+8-(j+(i%2?8:0)), y+i/2, color);
+                            else
+                                writeFillRect(x+8*size-(j+(i%2?8:0))*size, y+(i/2)*size, size, size, color);
+                        }
+                        else if(bg != color)
+                        {
+                            if(size == 1)
+                                writePixel(x+8-(j+(i%2?8:0)), y+i/2, bg);
+                            else
+                                writeFillRect(x+8*size-(j+(i%2?8:0))*size, y+(i/2)*size, size, size, bg);
+                        }
+                    }
+                }
+                break;
+        }
+    } else
+    {
+        switch (characterWidth)
+        {
+            case 1:
+                for(int8_t i=0; i<characterWidth*16; i++ )
+                {
+                    uint8_t line = glyph[i];
+                    for(int8_t j=7; j>= 0; j--, line >>= 1)
+                    {
+                        if(line & 1)
+                        {
+                            if(size == 1)
+                                writePixel(x+j, y+i, color);
+                            else
+                                writeFillRect(x+j*size, y+i*size, size, size, color);
+                        }
+                        else if(bg != color)
+                        {
+                            if(size == 1)
+                                writePixel(x+j, y+i, bg);
+                            else
+                                writeFillRect(x+j*size, y+i*size, size, size, bg);
+                        }
+                    }
+                }
+                break;
+            case 2:
+                for(int8_t i=0; i<characterWidth*16; i++ )
+                {
+                    uint8_t line = glyph[i];
+                    for(int8_t j=7; j>= 0; j--, line >>= 1)
+                    {
+                        if(line & 1)
+                        {
+                            if(size == 1)
+                                writePixel(x+j+(i%2?8:0), y+i/2, color);
+                            else
+                                writeFillRect(x+(j+(i%2?8:0))*size, y+(i/2)*size, size, size, color);
+                        }
+                        else if(bg != color)
+                        {
+                            if(size == 1)
+                                writePixel(x+j+(i%2?8:0), y+i/2, bg);
+                            else
+                                writeFillRect(x+(j+(i%2?8:0))*size, y+(i/2)*size, size, size, bg);
+                        }
+                    }
+                }
+                break;
+        }
+    }
 
     if(bg != color) { // If opaque, draw vertical line for last column
         if(size == 1) writeFastVLine(x+8*characterWidth, y, 16, bg);
@@ -1378,15 +1452,65 @@ size_t Adafruit_GFX::printUTF8(char *string) {
     } while (1);
 
     fix_diacritics(codepointsToPrint, len);
-    for (size_t i = 0; i < len; i++) writeCodepoint(codepointsToPrint[i]);
+    for (size_t i = 0; i < len; i++)
+    {
+        uint8_t block = codepointsToPrint[i] >> 8;
+        uint8_t charindex = codepointsToPrint[i] & 0x00FF;
+        uint8_t tableWidth = (unifont[block].flags & UNIFONT_BLOCK_IS_NARROW) ? 1 : 2;
+        bool useProgmem;
+        if (unifont[block].flags & UNIFONT_BLOCK_IN_PROGMEM)
+            useProgmem = true;
+        else if (unifileavailable)
+            useProgmem = false;
+        else
+            continue; // skip this character
 
+        if (unifont[block].flags & UNIFONT_BLOCK_HAS_DIRECTION_CHANGES)
+        {
+            uint8_t ltrMask;
+            uint8_t rtlMask;
+            if (block == 0)
+            {
+                // special case for block 0, since it's always in progmem and we make it shorter to save memory.
+                const uint8_t *ltr = (const uint8_t *)unifont[block].glyphs.location + 16 * 224;
+                ltrMask = (charindex < 64) ? 0 : pgm_read_byte(ltr + (charindex - 64) / 8);
+                rtlMask = 0;
+            }
+            else if (useProgmem)
+            {
+                const uint8_t *ltr = (const uint8_t *)unifont[block].glyphs.location + 16 * tableWidth * 256 + UNIFONT_LTR_BITMASK_LOCATION;
+                const uint8_t *rtl = (const uint8_t *)unifont[block].glyphs.location + 16 * tableWidth * 256 + UNIFONT_RTL_BITMASK_LOCATION;
+                ltrMask = pgm_read_byte(ltr + charindex / 8);
+                rtlMask = pgm_read_byte(rtl + charindex / 8);
+            } else
+            {
+                #ifdef UNIFONT_USE_FLASH
+                unifile.seek((uint32_t)unifont[block].glyphs.offset + 16 * tableWidth * 256 + UNIFONT_LTR_BITMASK_LOCATION + charindex / 8);
+                ltrMask = unifile.read();
+                unifile.seek((uint32_t)unifont[block].glyphs.offset + 16 * tableWidth * 256 + UNIFONT_RTL_BITMASK_LOCATION + charindex / 8);
+                rtlMask = unifile.read();
+                #endif // UNIFONT_USE_FLASH
+            }
+
+            if (ltrMask & (1 << (7 - charindex % 8)))
+            {
+                if (direction != 1) setRTL(false);
+            } else if (rtlMask & (1 << (7 - charindex % 8)))
+            {
+                if (direction != -1) setRTL(true);
+            }
+        }
+
+        writeCodepoint(codepointsToPrint[i]);
+    }
     free(codepointsToPrint);
     return len;
 }
 
 /**************************************************************************/
 /*!
-    @brief  Swaps all non-spacing marks to the position before the nearest spacing mark. This causes combining marks to be drawn first, so the character they modify can be drawn on top.
+    @brief  Swaps all non-spacing marks to the position before the nearest spacing mark.
+            This forces combining marks to be drawn first, so the character they modify can be drawn on top.
     @param  s       inout, an array of codepoints to be modified in place.
     @param  length  The number of codepoints in s.
     @note   This method is not idempotent! You must call it only once on any given string, since it will modify it in place.
@@ -1521,12 +1645,25 @@ void Adafruit_GFX::setTextWrap(boolean w) {
 /**************************************************************************/
 void Adafruit_GFX::setRTL(boolean r)
 {
-    uint8_t newDirection = r ? -1 : 1;
+    int8_t newDirection = r ? -1 : 1;
+    Serial.print("Setting direction to ");
+    Serial.print(newDirection);
     if (direction != newDirection)
     {
+        bool onBlankLine = (direction == 1 && cursor_x == 0) || (direction == -1 && cursor_x == (_width - textsize * 8));
         direction = newDirection;
-        if (cursor_y != 0) cursor_y += textsize * 16; // if there is text on this line, move to next line.
+        Serial.print(". Cursor moved from ");
+        Serial.print(cursor_x);
+        Serial.print(", ");
+        Serial.print(cursor_y);
+        Serial.print(", ");
+        if (!onBlankLine) cursor_y += textsize * 16; // if there is text on this line, move to next line.
         cursor_x = (direction == 1) ? 0 : (_width - textsize * 8); // Reset x to start of line
+        Serial.print(" to ");
+        Serial.print(cursor_x);
+        Serial.print(", ");
+        Serial.print(cursor_y);
+        Serial.println(".");
     }
 }
 /**************************************************************************/

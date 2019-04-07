@@ -125,7 +125,6 @@ class Adafruit_GFX : public Print {
     setTextColor(uint16_t c, uint16_t bg),
     setTextSize(uint8_t s),
     setTextWrap(boolean w),
-    setRTL(boolean r),
     cp437(boolean x=true),
     getTextBounds(const char *string, int16_t x, int16_t y,
       int16_t *x1, int16_t *y1, uint16_t *w, uint16_t *h),
@@ -160,6 +159,7 @@ class Adafruit_GFX : public Print {
 
  protected:
   void
+    setRTL(boolean r),
     charBounds(char c, int16_t *x, int16_t *y,
       int16_t *minx, int16_t *miny, int16_t *maxx, int16_t *maxy);
   const int16_t
