@@ -1465,40 +1465,37 @@ size_t Adafruit_GFX::printUTF8(char *string) {
         else
             continue; // skip this character
 
-        if (unifont[block].flags & UNIFONT_BLOCK_HAS_DIRECTION_CHANGES)
+        uint8_t ltrMask;
+        uint8_t rtlMask;
+        if (block == 0)
         {
-            uint8_t ltrMask;
-            uint8_t rtlMask;
-            if (block == 0)
-            {
-                // special case for block 0, since it's always in progmem and we make it shorter to save memory.
-                const uint8_t *ltr = (const uint8_t *)unifont[block].glyphs.location + 16 * 224;
-                ltrMask = (charindex < 64) ? 0 : pgm_read_byte(ltr + (charindex - 64) / 8);
-                rtlMask = 0;
-            }
-            else if (useProgmem)
-            {
-                const uint8_t *ltr = (const uint8_t *)unifont[block].glyphs.location + 16 * tableWidth * 256 + UNIFONT_LTR_BITMASK_LOCATION;
-                const uint8_t *rtl = (const uint8_t *)unifont[block].glyphs.location + 16 * tableWidth * 256 + UNIFONT_RTL_BITMASK_LOCATION;
-                ltrMask = pgm_read_byte(ltr + charindex / 8);
-                rtlMask = pgm_read_byte(rtl + charindex / 8);
-            } else
-            {
-                #ifdef UNIFONT_USE_FLASH
-                unifile.seek((uint32_t)unifont[block].glyphs.offset + 16 * tableWidth * 256 + UNIFONT_LTR_BITMASK_LOCATION + charindex / 8);
-                ltrMask = unifile.read();
-                unifile.seek((uint32_t)unifont[block].glyphs.offset + 16 * tableWidth * 256 + UNIFONT_RTL_BITMASK_LOCATION + charindex / 8);
-                rtlMask = unifile.read();
-                #endif // UNIFONT_USE_FLASH
-            }
+            // special case for block 0, since it's always in progmem and we make it shorter to save memory.
+            const uint8_t *ltr = (const uint8_t *)unifont[block].glyphs.location + 16 * 224;
+            ltrMask = (charindex < 64) ? 0 : pgm_read_byte(ltr + (charindex - 64) / 8);
+            rtlMask = 0;
+        }
+        else if (useProgmem)
+        {
+            const uint8_t *ltr = (const uint8_t *)unifont[block].glyphs.location + 16 * tableWidth * 256 + UNIFONT_LTR_BITMASK_LOCATION;
+            const uint8_t *rtl = (const uint8_t *)unifont[block].glyphs.location + 16 * tableWidth * 256 + UNIFONT_RTL_BITMASK_LOCATION;
+            ltrMask = pgm_read_byte(ltr + charindex / 8);
+            rtlMask = pgm_read_byte(rtl + charindex / 8);
+        } else
+        {
+            #ifdef UNIFONT_USE_FLASH
+            unifile.seek((uint32_t)unifont[block].glyphs.offset + 16 * tableWidth * 256 + UNIFONT_LTR_BITMASK_LOCATION + charindex / 8);
+            ltrMask = unifile.read();
+            unifile.seek((uint32_t)unifont[block].glyphs.offset + 16 * tableWidth * 256 + UNIFONT_RTL_BITMASK_LOCATION + charindex / 8);
+            rtlMask = unifile.read();
+            #endif // UNIFONT_USE_FLASH
+        }
 
-            if (ltrMask & (1 << (7 - charindex % 8)))
-            {
-                if (direction != 1) setRTL(false);
-            } else if (rtlMask & (1 << (7 - charindex % 8)))
-            {
-                if (direction != -1) setRTL(true);
-            }
+        if (ltrMask & (1 << (7 - charindex % 8)))
+        {
+            if (direction != 1) setRTL(false);
+        } else if (rtlMask & (1 << (7 - charindex % 8)))
+        {
+            if (direction != -1) setRTL(true);
         }
 
         writeCodepoint(codepointsToPrint[i]);
