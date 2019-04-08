@@ -24,16 +24,15 @@ typedef union {
 typedef struct {
     UnifontLocation glyphs; // If high bit of flags is set, use the location pointer.
                             // Otherwise, use the offset and look in the unifont.bin file.
-    uint8_t flags;          // 0bx00xxxxx
-                            //   |  |||||
-                            //   |  ||||\__ This block contains non-spacing code points
-                            //   |  ||||    (check spacing data after length data to determine advance)
-                            //   |  |||\___ This block contains exclusively narrow (16-byte) glyphs
-                            //   |  ||\____ This block contains exclusively wide (32-byte) glyphs
-                            //   |  ||      (if both of these are 0, all glyphs are 32 bytes but some are
-                            //   |  ||       half-width, check width bitmasks after glyph data for advance)
-                            //   |  |\_____ This block includes codepoints that can change the layout direction.
-                            //   |  \______ This block includes codepoints that can be mirrored when
+    uint8_t flags;          // 0bx000xxxx
+                            //   |   ||||
+                            //   |   |||\__ This block contains non-spacing code points
+                            //   |   |||    (check spacing data after length data to determine advance)
+                            //   |   ||\___ This block contains exclusively narrow (16-byte) glyphs
+                            //   |   |\____ This block contains exclusively wide (32-byte) glyphs
+                            //   |   |      (if both of these are 0, all glyphs are 32 bytes but some are
+                            //   |   |       half-width, check width bitmasks after glyph data for advance)
+                            //   |   \_____ This block includes codepoints that can be mirrored when
                             //   |          displayed within a right to left text run.
                             //   \_ This block is included in PROGMEM
 } UnifontBlock;
