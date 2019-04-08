@@ -1643,24 +1643,12 @@ void Adafruit_GFX::setTextWrap(boolean w) {
 void Adafruit_GFX::setRTL(boolean r)
 {
     int8_t newDirection = r ? -1 : 1;
-    Serial.print("Setting direction to ");
-    Serial.print(newDirection);
     if (direction != newDirection)
     {
         bool onBlankLine = (direction == 1 && cursor_x == 0) || (direction == -1 && cursor_x == (_width - textsize * 8));
         direction = newDirection;
-        Serial.print(". Cursor moved from ");
-        Serial.print(cursor_x);
-        Serial.print(", ");
-        Serial.print(cursor_y);
-        Serial.print(", ");
         if (!onBlankLine) cursor_y += textsize * 16; // if there is text on this line, move to next line.
         cursor_x = (direction == 1) ? 0 : (_width - textsize * 8); // Reset x to start of line
-        Serial.print(" to ");
-        Serial.print(cursor_x);
-        Serial.print(", ");
-        Serial.print(cursor_y);
-        Serial.println(".");
     }
 }
 /**************************************************************************/
