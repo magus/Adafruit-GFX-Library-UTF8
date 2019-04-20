@@ -54,9 +54,9 @@ for line in open('UnicodeData.txt', 'r'):
     bidi_class = line[4]
     bidi_mirrored = line[9]
     info = CodepointInfo()
-    info.isNSM = general_category in ["Mn", "Mc", "Me"] or bidi_class == "NSM"
+    info.isNSM = general_category in ["Mn", "Mc", "Me"] or bidi_class in ["NSM", "RNSM"]
     info.isLTR = bidi_class in ["L", "LRE", "LRO", "LRI"]
-    info.isRTL = bidi_class in ["R", "AL", "RLE", "RLO", "RLI"]
+    info.isRTL = bidi_class in ["R", "AL", "RLE", "RLO", "RLI", "RNSM"]
     info.isMirrored = bidi_mirrored == "Y"
     bidi_info[codepoint] = info
 

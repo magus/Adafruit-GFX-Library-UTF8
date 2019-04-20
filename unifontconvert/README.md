@@ -2,6 +2,8 @@
 
 Up to April of 2019 the unifont.bin file was just a straight concatenation of glyph data and width bitmasks, with indexes into the file hard-coded in `glcdfont.c`. In the interest of making this format more general and future-proof, I'm adopting a more specific format that people can use to encode other Unicode fonts for microcontrollers. This document outlines that format.
 
+Also note: there is an important note about RTL script support and the `UnicodeData.txt` file in this repo at the end.
+
 ## Bytes `0` through `7`: Font Header
 
 This section describes global information about the font. Values are unsigned decimal integers unless hex or binary notation is given.
@@ -99,3 +101,15 @@ So, for example, here are the bitmasks for Block 0:
     Mirror  : 0000000000c0000a000000140000001400000000001000100000000000000000
 
 You can see that all of the codepoints in this block are spacing marks, all of them are single-width, and none of them force RTL layout direction. Some of the glyphs force LTR layout direction, and some of them support bidirectional mirroring.
+
+## Errata re: RTL scripts
+
+The LTR, RTL, mirroring and spacing bitmasks generally follow the definitions provided in the [Unicode Character Database](http://www.unicode.org/reports/tr44/); strong LTR characters have the LTR bit set, strong RTL characters have the RTL bit set, etc. **There is one key difference**, reflected both in the `unifont.bin` file and the `UnicodeData.txt` file included in this repository.
+
+Normally, non-spacing marks do not have a strong RTL or LTR type; in fact, the `NSM` value in `Bidi_Class` is explicitly weak. This works because non-spacing marks are generally preceded by a character with a strong type: the character that the mark intends to modify. For example, the Arabic "مَالِكِ" would be encoded as "U+0645 U+064E U+0627 U+0644 U+0650 U+0643 U+0650". Since U+0645 ARABIC LETTER MEEM is a strong RTL glyph, it will force us into RTL mode by the time the weak U+064E ARABIC FATHA is drawn. This is how the Unicode bidirectional algorithm is intended to work.
+
+Unfortunately, for the Arduino implementation of Unifont, I had to resort to kind of a hack: before drawing, the string is reordered so that nonspacing marks are drawn first, and the character they modify is drawn on top. Which is fine, but leads to the problem that the above string would become "U+064E U+0645 U+0627 U+0650 U+0644 U+0650 U+0643". If we started rendering this string in a LTR context, the first U+064E ARABIC FATHA would lay out LTR, and then U+0645 ARABIC LETTER MEEM would move the cursor to the right. Basically, the first vowel marking would appear in the wrong place.
+
+TO FIX THIS, I'm breaking from the standard Unicode bidirectional algorithm by introducing a new category for Bidi_Class: `RNSM`. I have manually set this class for diacritics that are explicitly a part of RTL scripts, and it appears in the `UnicodeData.txt` file included in this folder. When a glyph has this category, the `converter.py` script sets the RTL bit to 1 and the spacing bit to 0. This should force us into RTL mode as soon as a RTL diacritic is encountered.
+
+This may cause some odd edge cases; for example, an Arabic diacritic appearing in the middle of some Latin characters would switch the layout mode to RTL, but the strong LTR type of most linguistic scripts should revert it to the correct mode relatively quickly. A RTL diacritic appearing in the midst of some weakly typed characters, such as numbers or symbols, could wreak more havoc; please open issues if you see cases where this becomes a problem when rendering everyday text.
