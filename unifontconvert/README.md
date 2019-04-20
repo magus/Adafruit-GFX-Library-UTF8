@@ -1,8 +1,8 @@
 # The unifont.bin File Format
 
-Up to April of 2019 the unifont.bin file was just a straight concatenation of glyph data and width bitmasks, with indexes into the file hard-coded in `glcdfont.c`. In the interest of making this format more general and future-proof, I'm adopting a more specific format that people can use to encode other Unicode fonts for microcontrollers. This document outlines that format.
+The unifont.bin file consists of an 8-byte header with information that applies to the whole font; this is things like width, height, flags, and (importantly) the number of Unicode blocks included in the file. After the font header, a number of 4-byte headers follow with information about each of the included blocks. The number of headers will match the number of blocks indicated in the font header, currently 223.
 
-Also note: there is an important note about RTL script support and the `UnicodeData.txt` file in this repo at the end.
+After the block headers comes the first block of glyph data, followed by a number of bitmasks that describe attributes of the glyphs in that block. Next comes the second block and the second set of bitmasks, on until we have included all of the blocks promised in the header.
 
 ## Bytes `0` through `7`: Font Header
 
@@ -10,11 +10,11 @@ This section describes global information about the font. Values are unsigned de
 
 | Offset | Length | Typical Value | Contents |
 |--------|--------|---------------|----------|
-| 0      | 2      | 0x0000        | **Reserved**: two zero bytes. CircuitPython looks for width and height in these fields; `00 00` can serve as an indicator that this is a Unicode font, or we can use this for something else later. |
+| 0      | 2      | 0x0000        | **Reserved**: two zero bytes. An earlier version of CircuitPython's font loader looked for width and height in these fields; I had thought that `00 00` could serve as an indicator that this is a Unicode font, or we can use this for something else later. |
 | 2      | 1      | 8             | Width of a standard-sized glyph. Marked as _w_ in the tables below. For the moment, the only supported value is 8. |
 | 3      | 1      | 16            | Height of a standard-sized glyph. Marked as _h_ in the tables below. For the moment, the only supported value is 16. |
 | 4      | 1      | 0b00000001    | Font-wide flags. Currently only the least significant bit matters: if flags & 1, the font has both single- and double-width glyphs, and a _multiplier_ of 2 is applied to any blocks that are not exclusively single-width. |
-| 5      | 1      | 5             | Number of bitmasks (_numBitmasks_) available for each block. At the end of each block's glyph data, there are this many 32-byte (256-bit) bitmasks that describe some attribute of every character in the font. Currently we have five, described below.
+| 5      | 1      | 5             | Number of bitmasks (_numBitmasks_) available for each block. At the end of each block's glyph data, there are this many 32-byte (256-bit) bitmasks that describe some attribute of every character in the block. Currently we have five, described below. |
 | 6      | 2      | 223           | Number of blocks included in this file. Marked as _numBlocks_ in the following tables. |
 | 8      | -      | -             | End of font header. |
 
