@@ -1941,11 +1941,11 @@ void Adafruit_GFX_Button::drawButton(boolean inverted) {
   _gfx->fillRoundRect(_x1, _y1, _w, _h, r, fill);
   _gfx->drawRoundRect(_x1, _y1, _w, _h, r, outline);
 
-  _gfx->setCursor(_x1 + (_w/2) - (strlen(_label) * 3 * _textsize),
-    _y1 + (_h/2) - (4 * _textsize));
+  _gfx->setCursor(_x1 + (_w/2) - (strlen(_label) * 4 * _textsize),
+    _y1 + (_h/2) - (8 * _textsize));
   _gfx->setTextColor(text);
   _gfx->setTextSize(_textsize);
-  _gfx->print(_label);
+  _gfx->printUTF8(_label);
 }
 
 /**************************************************************************/
