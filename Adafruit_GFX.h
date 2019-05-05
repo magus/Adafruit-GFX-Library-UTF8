@@ -16,7 +16,7 @@
  #define UNIFONT_USE_SPI
 #endif
 
-#if defined(ADAFRUIT_FEATHER_M4_EXPRESS) || defined(ADAFRUIT_PYPORTAL) /* UNTESTED: */ || defined(ADAFRUIT_TRELLIS_M4_EXPRESS) || defined(ADAFRUIT_GRAND_CENTRAL_M4) || defined(ADAFRUIT_ITSYBITSY_M4_EXPRESS) || defined(ADAFRUIT_METRO_M4_EXPRESS)
+#if defined(ADAFRUIT_FEATHER_M4_EXPRESS) || defined(ADAFRUIT_PYPORTAL) || defined(ADAFRUIT_PYBADGE_M4_EXPRESS) /* UNTESTED: */ || defined(ADAFRUIT_TRELLIS_M4_EXPRESS) || defined(ADAFRUIT_GRAND_CENTRAL_M4) || defined(ADAFRUIT_ITSYBITSY_M4_EXPRESS) || defined(ADAFRUIT_METRO_M4_EXPRESS)
  #define UNIFONT_USE_FLASH
  #define UNIFONT_USE_QSPI
 #endif
@@ -185,8 +185,7 @@ class Adafruit_GFX : public Print {
   inline uint8_t index_for_block(uint8_t block);
   void fix_diacritics(uint16_t *s, size_t length);
 #ifdef UNIFONT_USE_FLASH
-  File
-    unifile;        // file handle to unifont.bin, if available
+  Adafruit_SPIFlash_FAT::File unifile; // file handle to unifont.bin, if available
 #endif // UNIFONT_USE_FLASH
 };
 
