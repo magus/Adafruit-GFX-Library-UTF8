@@ -755,7 +755,7 @@ void Adafruit_GFX::fillTriangle(int16_t x0, int16_t y0,
     @param    y   Top left corner y coordinate
     @param    bitmap  byte array with monochrome bitmap
     @param    w   Width of bitmap in pixels
-    @param    h   Hieght of bitmap in pixels
+    @param    h   Height of bitmap in pixels
     @param    color 16-bit 5-6-5 Color to draw with
 */
 /**************************************************************************/
@@ -783,7 +783,7 @@ void Adafruit_GFX::drawBitmap(int16_t x, int16_t y,
     @param    y   Top left corner y coordinate
     @param    bitmap  byte array with monochrome bitmap
     @param    w   Width of bitmap in pixels
-    @param    h   Hieght of bitmap in pixels
+    @param    h   Height of bitmap in pixels
     @param    color 16-bit 5-6-5 Color to draw pixels with
     @param    bg 16-bit 5-6-5 Color to draw background with
 */
@@ -813,7 +813,7 @@ void Adafruit_GFX::drawBitmap(int16_t x, int16_t y,
     @param    y   Top left corner y coordinate
     @param    bitmap  byte array with monochrome bitmap
     @param    w   Width of bitmap in pixels
-    @param    h   Hieght of bitmap in pixels
+    @param    h   Height of bitmap in pixels
     @param    color 16-bit 5-6-5 Color to draw with
 */
 /**************************************************************************/
@@ -841,7 +841,7 @@ void Adafruit_GFX::drawBitmap(int16_t x, int16_t y,
     @param    y   Top left corner y coordinate
     @param    bitmap  byte array with monochrome bitmap
     @param    w   Width of bitmap in pixels
-    @param    h   Hieght of bitmap in pixels
+    @param    h   Height of bitmap in pixels
     @param    color 16-bit 5-6-5 Color to draw pixels with
     @param    bg 16-bit 5-6-5 Color to draw background with
 */
@@ -874,7 +874,7 @@ void Adafruit_GFX::drawBitmap(int16_t x, int16_t y,
     @param    y   Top left corner y coordinate
     @param    bitmap  byte array with monochrome bitmap
     @param    w   Width of bitmap in pixels
-    @param    h   Hieght of bitmap in pixels
+    @param    h   Height of bitmap in pixels
     @param    color 16-bit 5-6-5 Color to draw pixels with
 */
 /**************************************************************************/
@@ -906,7 +906,7 @@ void Adafruit_GFX::drawXBitmap(int16_t x, int16_t y,
     @param    y   Top left corner y coordinate
     @param    bitmap  byte array with grayscale bitmap
     @param    w   Width of bitmap in pixels
-    @param    h   Hieght of bitmap in pixels
+    @param    h   Height of bitmap in pixels
 */
 /**************************************************************************/
 void Adafruit_GFX::drawGrayscaleBitmap(int16_t x, int16_t y,
@@ -928,7 +928,7 @@ void Adafruit_GFX::drawGrayscaleBitmap(int16_t x, int16_t y,
     @param    y   Top left corner y coordinate
     @param    bitmap  byte array with grayscale bitmap
     @param    w   Width of bitmap in pixels
-    @param    h   Hieght of bitmap in pixels
+    @param    h   Height of bitmap in pixels
 */
 /**************************************************************************/
 void Adafruit_GFX::drawGrayscaleBitmap(int16_t x, int16_t y,
