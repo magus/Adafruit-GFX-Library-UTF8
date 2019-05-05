@@ -1440,6 +1440,7 @@ size_t Adafruit_GFX::printlnUTF8(char *string) {
 }
 
 size_t Adafruit_GFX::printUTF8(char *string) {
+    if (strlen(string) == 0) return 0;
     size_t len = 0;
     uint16_t *codepointsToPrint = (uint16_t *)malloc(strlen(string) * 2);
 
