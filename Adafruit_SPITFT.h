@@ -188,6 +188,15 @@ class Adafruit_SPITFT : public Adafruit_GFX {
     // Chip deselect and/or hardware SPI transaction end as needed:
     void         endWrite(void);
 
+    void sendCommand(uint8_t commandByte, uint8_t *dataBytes,
+                    uint8_t numDataBytes);
+    void sendCommand(uint8_t commandByte, const uint8_t *dataBytes = NULL,
+                    uint8_t numDataBytes = 0);
+    void sendCommand16(uint16_t commandWord, const uint8_t *dataBytes = NULL,
+                      uint8_t numDataBytes = 0);
+    uint8_t readcommand8(uint8_t commandByte, uint8_t index = 0);
+    uint16_t readcommand16(uint16_t addr);
+
     // These functions require a chip-select and/or SPI transaction
     // around them. Higher-level graphics primitives might start a
     // single transaction and then make multiple calls to these functions
@@ -238,6 +247,8 @@ class Adafruit_SPITFT : public Adafruit_GFX {
 
     void         invertDisplay(bool i);
     uint16_t     color565(uint8_t r, uint8_t g, uint8_t b);
+
+
 
     // Despite parallel additions, function names kept for compatibility:
     void         spiWrite(uint8_t b);       // Write single byte as DATA

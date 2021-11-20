@@ -1633,6 +1633,164 @@ uint16_t Adafruit_SPITFT::color565(uint8_t red, uint8_t green, uint8_t blue) {
 }
 
 
+/*!
+@brief   Adafruit_SPITFT Send Command handles complete sending of commands and
+data
+@param   commandByte       The Command Byte
+@param   dataBytes         A pointer to the Data bytes to send
+@param   numDataBytes      The number of bytes we should send
+*/
+void Adafruit_SPITFT::sendCommand(uint8_t commandByte, uint8_t *dataBytes,
+                                  uint8_t numDataBytes) {
+  SPI_BEGIN_TRANSACTION();
+  if (_cs >= 0)
+    SPI_CS_LOW();
+
+  SPI_DC_LOW();          // Command mode
+  spiWrite(commandByte); // Send the command byte
+
+  SPI_DC_HIGH();
+  for (int i = 0; i < numDataBytes; i++) {
+    if ((connection == TFT_PARALLEL) && tft8.wide) {
+      SPI_WRITE16(*(uint16_t *)dataBytes);
+      dataBytes += 2;
+    } else {
+      spiWrite(*dataBytes); // Send the data bytes
+      dataBytes++;
+    }
+  }
+
+  if (_cs >= 0)
+    SPI_CS_HIGH();
+  SPI_END_TRANSACTION();
+}
+
+/*!
+ @brief   Adafruit_SPITFT Send Command handles complete sending of commands and
+ data
+ @param   commandByte       The Command Byte
+ @param   dataBytes         A pointer to the Data bytes to send
+ @param   numDataBytes      The number of bytes we should send
+ */
+void Adafruit_SPITFT::sendCommand(uint8_t commandByte, const uint8_t *dataBytes,
+                                  uint8_t numDataBytes) {
+  SPI_BEGIN_TRANSACTION();
+  if (_cs >= 0)
+    SPI_CS_LOW();
+
+  SPI_DC_LOW();          // Command mode
+  spiWrite(commandByte); // Send the command byte
+
+  SPI_DC_HIGH();
+  for (int i = 0; i < numDataBytes; i++) {
+    if ((connection == TFT_PARALLEL) && tft8.wide) {
+      SPI_WRITE16(*(uint16_t *)dataBytes);
+      dataBytes += 2;
+    } else {
+      spiWrite(pgm_read_byte(dataBytes++));
+    }
+  }
+
+  if (_cs >= 0)
+    SPI_CS_HIGH();
+  SPI_END_TRANSACTION();
+}
+
+/*!
+ @brief  Adafruit_SPITFT sendCommand16 handles complete sending of
+         commands and data for 16-bit parallel displays. Currently somewhat
+         rigged for the NT35510, which has the odd behavior of wanting
+         commands 16-bit, but subsequent data as 8-bit values, despite
+         the 16-bit bus (high byte is always 0). Also seems to require
+         issuing and incrementing address with each transfer.
+ @param  commandWord   The command word (16 bits)
+ @param  dataBytes     A pointer to the data bytes to send
+ @param  numDataBytes  The number of bytes we should send
+ */
+void Adafruit_SPITFT::sendCommand16(uint16_t commandWord,
+                                    const uint8_t *dataBytes,
+                                    uint8_t numDataBytes) {
+  SPI_BEGIN_TRANSACTION();
+  if (_cs >= 0)
+    SPI_CS_LOW();
+
+  if (numDataBytes == 0) {
+    SPI_DC_LOW();             // Command mode
+    SPI_WRITE16(commandWord); // Send the command word
+    SPI_DC_HIGH();            // Data mode
+  }
+  for (int i = 0; i < numDataBytes; i++) {
+    SPI_DC_LOW();             // Command mode
+    SPI_WRITE16(commandWord); // Send the command word
+    SPI_DC_HIGH();            // Data mode
+    commandWord++;
+    SPI_WRITE16((uint16_t)pgm_read_byte(dataBytes++));
+  }
+
+  if (_cs >= 0)
+    SPI_CS_HIGH();
+  SPI_END_TRANSACTION();
+}
+
+/*!
+ @brief   Read 8 bits of data from display configuration memory (not RAM).
+ This is highly undocumented/supported and should be avoided,
+ function is only included because some of the examples use it.
+ @param   commandByte
+ The command register to read data from.
+ @param   index
+ The byte index into the command to read from.
+ @return  Unsigned 8-bit data read from display register.
+ */
+/**************************************************************************/
+uint8_t Adafruit_SPITFT::readcommand8(uint8_t commandByte, uint8_t index) {
+  uint8_t result;
+  startWrite();
+  SPI_DC_LOW(); // Command mode
+  spiWrite(commandByte);
+  SPI_DC_HIGH(); // Data mode
+  do {
+    result = spiRead();
+  } while (index--); // Discard bytes up to index'th
+  endWrite();
+  return result;
+}
+
+/*!
+ @brief   Read 16 bits of data from display register.
+          For 16-bit parallel displays only.
+ @param   addr  Command/register to access.
+ @return  Unsigned 16-bit data.
+ */
+uint16_t Adafruit_SPITFT::readcommand16(uint16_t addr) {
+#if defined(USE_FAST_PINIO) // NOT SUPPORTED without USE_FAST_PINIO
+  uint16_t result = 0;
+  if ((connection == TFT_PARALLEL) && tft8.wide) {
+    startWrite();
+    SPI_DC_LOW(); // Command mode
+    SPI_WRITE16(addr);
+    SPI_DC_HIGH(); // Data mode
+    TFT_RD_LOW();  // Read line LOW
+#if defined(HAS_PORT_SET_CLR)
+    *(volatile uint16_t *)tft8.dirClr = 0xFFFF;   // Input state
+    result = *(volatile uint16_t *)tft8.readPort; // 16-bit read
+    *(volatile uint16_t *)tft8.dirSet = 0xFFFF;   // Output state
+#else                                             // !HAS_PORT_SET_CLR
+    *(volatile uint16_t *)tft8.portDir = 0x0000;    // Input state
+    result = *(volatile uint16_t *)tft8.readPort;   // 16-bit read
+    *(volatile uint16_t *)tft8.portDir = 0xFFFF;    // Output state
+#endif                                            // end !HAS_PORT_SET_CLR
+    TFT_RD_HIGH();                                // Read line HIGH
+    endWrite();
+  }
+  return result;
+#else
+  (void)addr; // disable -Wunused-parameter warning
+  return 0;
+#endif // end !USE_FAST_PINIO
+}
+
+
 // -------------------------------------------------------------------------
 // Lowest-level hardware-interfacing functions. Many of these are inline and
 // compile to different things based on #defines -- typically just a few
