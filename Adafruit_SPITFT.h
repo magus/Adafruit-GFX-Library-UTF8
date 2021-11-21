@@ -223,6 +223,9 @@ class Adafruit_SPITFT : public Adafruit_GFX {
     // Another new function, companion to the new non-blocking
     // writePixels() variant.
     void dmaWait(void);
+    // Used by writePixels() in some situations, but might have rare need in
+    // user code, so it's public...
+    void swapBytes(uint16_t *src, uint32_t len, uint16_t *dest = NULL);
 
 
     // These functions are similar to the 'write' functions above, but with

@@ -862,6 +862,24 @@ void Adafruit_SPITFT::writePixel(int16_t x, int16_t y, uint16_t color) {
 }
 
 /*!
+    @brief  Swap bytes in an array of pixels; converts little-to-big or
+            big-to-little endian. Used by writePixels() below in some
+            situations, but may also be helpful for user code occasionally.
+    @param  src   Source address of 16-bit pixels buffer.
+    @param  len   Number of pixels to byte-swap.
+    @param  dest  Optional destination address if different than src --
+                  otherwise, if NULL (default) or same address is passed,
+                  pixel buffer is overwritten in-place.
+*/
+void Adafruit_SPITFT::swapBytes(uint16_t *src, uint32_t len, uint16_t *dest) {
+  if (!dest)
+    dest = src; // NULL -> overwrite src buffer
+  for (uint32_t i = 0; i < len; i++) {
+    dest[i] = __builtin_bswap16(src[i]);
+  }
+}
+
+/*!
     @brief  Issue a series of pixels from memory to the display. Not self-
             contained; should follow startWrite() and setAddrWindow() calls.
     @param  colors     Pointer to array of 16-bit pixel values in '565' RGB
@@ -899,6 +917,17 @@ void Adafruit_SPITFT::writePixels(uint16_t *colors, uint32_t len,
         hwspi._spi->writePixels(colors, len * 2);
         return;
     }
+#elif defined(ESP8266)
+  if (connection == TFT_HARD_SPI) {
+    if (!bigEndian) {
+      swapBytes(colors, len); // convert little-to-big endian for display
+    }
+    hwspi._spi->writeBytes((uint8_t *)colors, len * 2);
+    if (!bigEndian) {
+      swapBytes(colors, len); // big-to-little endian to restore pixel buffer
+    }
+    return;
+  }
 #elif defined(USE_SPI_DMA)
     if((connection == TFT_HARD_SPI) || (connection == TFT_PARALLEL)) {
         int     maxSpan     = maxFillLen / 2; // One scanline max
